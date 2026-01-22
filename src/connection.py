@@ -8,7 +8,8 @@ from urllib.parse import urlparse
 from builder import add_to_build_queue
 from colors import blue
 from config import AUTH_TOKEN, PORT
-from distribution import AttackingJob, AttackScriptJob, UpdateCIJob, add_to_dist_queue
+
+# from distribution import AttackingJob, AttackScriptJob, UpdateCIJob, add_to_dist_queue
 from jobs import BuildJob, CommitInfo
 from webhook import push_webhook
 
@@ -76,7 +77,7 @@ def serve():
                         conn.close()
                         continue
 
-                    add_to_dist_queue(AttackingJob(conn, "PENDING", time.time(), team))
+                    # add_to_dist_queue(AttackingJob(conn, "PENDING", time.time(), team))
                     push_webhook()
                 elif method == "attack-script":
                     conn.sendall(b"[CONN] Attacking target with manual attack script\n")
@@ -89,13 +90,13 @@ def serve():
                         conn.close()
                         continue
 
-                    add_to_dist_queue(
-                        AttackScriptJob(conn, "PENDING", time.time(), team, script_url)
-                    )
+                    # add_to_dist_queue(
+                    #     AttackScriptJob(conn, "PENDING", time.time(), team, script_url)
+                    # )
                     push_webhook()
                 elif method == "update-ci":
                     conn.sendall(b"[CONN] Updating CI\n")
-                    UpdateCIJob(conn, "PENDING", time.time()).update_ci()
+                    # UpdateCIJob(conn, "PENDING", time.time()).update_ci()
 
             except Exception:  # noqa: BLE001
                 traceback.print_exc()

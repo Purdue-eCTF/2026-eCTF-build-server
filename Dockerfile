@@ -2,7 +2,7 @@ FROM docker:27-dind
 
 RUN apk update && apk upgrade && apk add github-cli python3 py3-pip openssh-client rsync curl
 
-RUN pip install wheel --break-system-packages && pip install colorama requests --break-system-packages
+RUN pip install wheel --break-system-packages && pip install colorama requests pyzmq --break-system-packages
 RUN curl -L -o /usr/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
 	chmod +x /usr/bin/cloudflared
 

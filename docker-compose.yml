@@ -7,14 +7,15 @@ services:
             context: .
         ports:
             - "8888:8888"
+            - "5555:5555"
         restart: always
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-            - decoder:/root/mounts/decoder
+            - firmware:/root/mounts/firmware
             - build_out:/root/mounts/build_out
             - secrets:/root/mounts/secrets
             - ../scrape-bot/temp:/root/mounts/targets
 volumes:
-    decoder:
+    firmware:
     build_out:
     secrets:

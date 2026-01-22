@@ -1,17 +1,22 @@
 import traceback
+import zmq
 
 import requests
 
 from colors import red
-from config import DEBUG, WEBHOOK_IP
+from config import DEBUG, ZMQ_PORT
 from jobs import Job
 
+context = zmq.Context()
+socket = context.socket(zmq.PUB)
+socket.bind(f"tcp://*:{ZMQ_PORT}")
+socket.send_string("GOOOOOOOOO")
 active_status: Job | None = None
 
 
 def push_webhook(update_type: str = "QUEUE", update_state: Job | None = None):
+    print("[ZMQ] Publishing Message")
     from builder import BUILD_QUEUE, active_build  # noqa: PLC0415
-    from distribution import distribution_queue, upload_status  # noqa: PLC0415
 
     if DEBUG:  # disable webhook while debugging
         return
@@ -20,37 +25,18 @@ def push_webhook(update_type: str = "QUEUE", update_state: Job | None = None):
         global active_status
         active_status = update_state
     try:
-        requests.post(
-            WEBHOOK_IP,
-            json={
-                "update": {
-                    "type": update_type,
-                    "state": update_state.to_json() if update_state else None,
-                },
-                "status": active_status.status if active_status else None,
-                "build": {
-                    "active": active_build.to_json() if active_build else None,
-                    "queue": [
-                        action.to_json() for action in list(BUILD_QUEUE.queue)
-                    ],  # allegedly safe (https://stackoverflow.com/a/8196904)
-                },
-                "test": {
-                    "activeTests": [
-                        {
-                            "ip": ip,
-                            "locked": not stat.connected,  # TODO rename field
-                            "active": stat.job.to_json() if stat.job else None,
-                        }
-                        for ip, stat in upload_status.items()
-                    ],
-                    "queue": [
-                        action.to_json() for action in list(distribution_queue.queue)
-                    ],
-                },
-            },
-            headers={"content-type": "application/json"},
-            timeout=15,
+        # An abomination :prayer_hands:
+        socket.send_string(
+            '"update": {'
+            f'"type": {update_type},'
+            f'"state": {update_state.to_json() if update_state else None},'
+            "},"
+            f'"status": {active_status.status if active_status else None},'
+            '"build": {'
+            f'"active": {active_build.to_json() if active_build else None},'
+            '"queue": [' + action.to_json_string()
+            for action in list(BUILD_QUEUE.queue) + "]," + "}," + "}"
         )
     except requests.RequestException as e:
-        print(red("[WEBHOOK] Could not push webhook"))
+        print(red("[ZMQ] Could not publish to zmq"))
         traceback.print_exc()

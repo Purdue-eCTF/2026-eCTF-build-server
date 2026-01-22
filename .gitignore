@@ -8,3 +8,7 @@ config.py
 builds
 id_ed25519*
 ssh_config
+.env
+ectf-design-repo/
+zmqtest.py
+.gitignore
