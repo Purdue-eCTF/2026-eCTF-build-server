@@ -4,18 +4,16 @@ import zmq
 import requests
 
 from colors import red
-from config import DEBUG, ZMQ_PORT
+from config import DEBUG, STATUS_PORT, LOG_PORT
 from jobs import Job
 
-context = zmq.Context()
-socket = context.socket(zmq.PUB)
-socket.bind(f"tcp://*:{ZMQ_PORT}")
-socket.send_string("GOOOOOOOOO")
+context = zmq.Context.instance()
+status_pub = context.socket(zmq.PUB)
+status_pub.bind(f"tcp://*:{STATUS_PORT}")
 active_status: Job | None = None
 
 
 def push_webhook(update_type: str = "QUEUE", update_state: Job | None = None):
-    print("[ZMQ] Publishing Message")
     from builder import BUILD_QUEUE, active_build  # noqa: PLC0415
 
     if DEBUG:  # disable webhook while debugging
@@ -26,7 +24,7 @@ def push_webhook(update_type: str = "QUEUE", update_state: Job | None = None):
         active_status = update_state
     try:
         # An abomination :prayer_hands:
-        socket.send_string(
+        status_pub.send_string(
             '"update": {'
             f'"type": {update_type},'
             f'"state": {update_state.to_json() if update_state else None},'

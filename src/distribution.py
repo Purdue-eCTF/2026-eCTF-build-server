@@ -15,7 +15,7 @@ import requests
 
 from colors import blue, red
 from config import GITHUB_TOKEN, GITHUB_USERNAME, IPS
-from jobs import CommitInfo, Job
+from jobs import Commit, Job
 from webhook import push_webhook
 
 distribution_queue: Queue["DistributionJob"] = Queue()
@@ -34,7 +34,7 @@ class DistributionJob(Job):
     in_path: str
     queue_type: Literal["ATTACK", "TEST"]
     attack_board: bool
-    commit: CommitInfo | None = None
+    commit: Commit | None = None
 
     def to_json(self):
         return {
@@ -86,7 +86,9 @@ class DistributionJob(Job):
                         "-o",
                         "StrictHostKeyChecking=accept-new",
                         ip,
-                        f"{VENV} || exit 1; {CI_PATH}/update {OUT_PATH}/{firmware_file} {'1' if self.attack_board else ''};",
+                        f"{VENV} || exit 1; {CI_PATH}/update {OUT_PATH}/{firmware_file} {
+                            '1' if self.attack_board else ''
+                        };",
                     ],
                     timeout=60 * 4,
                     check=True,
@@ -157,7 +159,7 @@ class TestingJob(DistributionJob):
         status: str,
         start_time: float,
         build_folder: str,
-        commit: CommitInfo,
+        commit: Commit,
     ):
         self.build_folder = build_folder
         super().__init__(
@@ -254,7 +256,7 @@ class AttackingJob(DistributionJob):
             name=team,
             in_path=str(self.target_folder / "attacker.prot"),
             queue_type="ATTACK",
-            commit=CommitInfo("", team, "Automated attack tests", ""),
+            commit=Commit("", team, "Automated attack tests", ""),
             socket_colors=False,  # scrape-bot specific
             attack_board=True,
         )
@@ -343,7 +345,7 @@ class AttackScriptJob(DistributionJob):
             name=team,
             in_path=str(self.target_folder / "attacker.prot"),
             queue_type="ATTACK",
-            commit=CommitInfo("", team, "Manual attack script", ""),
+            commit=Commit("", team, "Manual attack script", ""),
             socket_colors=False,  # scrape-bot specific
             attack_board=True,
         )
@@ -483,7 +485,9 @@ class UpdateCIJob(Job):
                             "StrictHostKeyChecking=accept-new",
                             ip,
                             f"cd {CI_PATH} && "
-                            f"GITHUB_USERNAME={GITHUB_USERNAME} GITHUB_TOKEN={GITHUB_TOKEN} "
+                            f"GITHUB_USERNAME={GITHUB_USERNAME} GITHUB_TOKEN={
+                                GITHUB_TOKEN
+                            } "
                             f"GIT_ASKPASS={CI_PATH}/git-askpass.sh "
                             "git pull --recurse-submodules --ff-only origin main",
                         ],
@@ -539,7 +543,9 @@ def init_distribution_queue():
     with open("ssh_config", "w", encoding="utf-8") as f:
         for ip, queue_type in IPS:
             f.write(
-                f"Host {ip.split('@')[1]}\nProxyCommand cloudflared access ssh --hostname %h\n"
+                f"Host {
+                    ip.split('@')[1]
+                }\nProxyCommand cloudflared access ssh --hostname %h\n"
             )
             upload_status[ip] = UploadServerStatus()
             server_queues[queue_type].put(ip)

@@ -10,7 +10,7 @@ from colors import blue
 from config import AUTH_TOKEN, PORT
 
 # from distribution import AttackingJob, AttackScriptJob, UpdateCIJob, add_to_dist_queue
-from jobs import BuildJob, CommitInfo
+from jobs import ActionUpdate, Commit
 from webhook import push_webhook
 
 
@@ -59,11 +59,11 @@ def serve():
 
                     print(f"[CONN] Queuing build for commit {hash}...")
 
-                    req = BuildJob(
+                    req = ActionUpdate(
                         conn,
                         "PENDING",
                         time.time(),
-                        CommitInfo(hash, author, name, run_id),
+                        Commit(hash, author, name, run_id),
                     )
                     add_to_build_queue(req)
                     push_webhook()

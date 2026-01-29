@@ -8,7 +8,7 @@ from colors import red
 
 
 @dataclass
-class CommitInfo:
+class Commit:
     hash: str
     author: str
     message: str
@@ -50,8 +50,8 @@ class Job:
         self.status = "FAILED"
 
 
-class BuildJob(Job):
-    commit: CommitInfo
+class ActionUpdate(Job):
+    commit: Commit
 
     def __init__(self, conn, status, start_time, commit):
         self.commit = commit
@@ -61,7 +61,7 @@ class BuildJob(Job):
 
     def to_json(self):
         return {
-            "result": self.status,
-            "actionStart": round(self.start_time),
+            "status": self.status,
+            "start": round(self.start_time),
             "commit": self.commit.to_json(),
         }

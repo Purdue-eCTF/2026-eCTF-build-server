@@ -10,14 +10,14 @@ from colors import blue, red
 from config import DESIGN_REPO, GITHUB_TOKEN
 
 # from distribution import TestingJob, add_to_dist_queue
-from jobs import BuildJob
+from jobs import ActionUpdate
 from webhook import push_webhook
 
-BUILD_QUEUE: Queue[BuildJob] = Queue()
-active_build: BuildJob | None = None
+BUILD_QUEUE: Queue[ActionUpdate] = Queue()
+active_build: ActionUpdate | None = None
 
 
-def add_to_build_queue(job: BuildJob):
+def add_to_build_queue(job: ActionUpdate):
     """
     Add a job to the build queue
     :param job: The job to add
@@ -25,7 +25,7 @@ def add_to_build_queue(job: BuildJob):
     BUILD_QUEUE.put(job)
 
 
-def build(job: BuildJob):
+def build(job: ActionUpdate):
     global active_build  # noqa: PLW0603
     active_build = job
     job.status = "BUILDING"
@@ -81,7 +81,9 @@ def build(job: BuildJob):
         except subprocess.CalledProcessError as e:
             job.on_error(
                 e,
-                f"[BUILD] Failed to build commit {job.commit.hash}! Failed to build secrets!\nError: {e.output}",
+                f"[BUILD] Failed to build commit {
+                    job.commit.hash
+                }! Failed to build secrets!\nError: {e.output}",
             )
 
             job.status = "FAILED"
@@ -127,7 +129,9 @@ def build(job: BuildJob):
         except subprocess.SubprocessError as e:
             job.on_error(
                 e,
-                f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!\nError: {e.output}",
+                f"[BUILD] Failed to build commit {
+                    job.commit.hash
+                }! Build failed!\nError: {e.output}",
             )
 
             job.status = "FAILED"

@@ -7,7 +7,8 @@ services:
             context: .
         ports:
             - "8888:8888"
-            - "5555:5555"
+            - "10001:10001"
+            - "10003:10003"
         restart: always
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
