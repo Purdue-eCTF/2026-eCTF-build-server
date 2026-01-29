@@ -10,14 +10,14 @@ from colors import blue, red
 from config import DESIGN_REPO, GITHUB_TOKEN
 
 # from distribution import TestingJob, add_to_dist_queue
-from jobs import ActionUpdate
+from jobs import ActionResult, ActionStatus
 from webhook import push_webhook
 
-BUILD_QUEUE: Queue[ActionUpdate] = Queue()
-active_build: ActionUpdate | None = None
+BUILD_QUEUE: Queue[ActionResult] = Queue()
+active_build: ActionResult | None = None
 
 
-def add_to_build_queue(job: ActionUpdate):
+def add_to_build_queue(job: ActionResult):
     """
     Add a job to the build queue
     :param job: The job to add
@@ -25,10 +25,10 @@ def add_to_build_queue(job: ActionUpdate):
     BUILD_QUEUE.put(job)
 
 
-def build(job: ActionUpdate):
+def build(job: ActionResult):
     global active_build  # noqa: PLW0603
     active_build = job
-    job.status = "BUILDING"
+    job.status = ActionStatus.BUILDING
     job.start_time = time.time()
     push_webhook("BUILD", job)
 
@@ -56,7 +56,7 @@ def build(job: ActionUpdate):
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! No commit found."
             )
 
-            job.status = "FAILED"
+            job.status = ActionStatus.BUILD_FAILED
             push_webhook("BUILD", job)
             return
 
@@ -86,7 +86,7 @@ def build(job: ActionUpdate):
                 }! Failed to build secrets!\nError: {e.output}",
             )
 
-            job.status = "FAILED"
+            job.status = ActionStatus.BUILD_FAILED
             push_webhook("BUILD", job)
             return
 
@@ -134,7 +134,7 @@ def build(job: ActionUpdate):
                 }! Build failed!\nError: {e.output}",
             )
 
-            job.status = "FAILED"
+            job.status = ActionStatus.BUILD_FAILED
             push_webhook("BUILD", job)
             return
 
@@ -150,7 +150,7 @@ def build(job: ActionUpdate):
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!"
             )
 
-            job.status = "FAILED"
+            job.status = ActionStatus.BUILD_FAILED
             push_webhook("BUILD", job)
             return
 

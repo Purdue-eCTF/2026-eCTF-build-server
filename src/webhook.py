@@ -1,11 +1,12 @@
 import traceback
 import zmq
+import json
 
 import requests
 
 from colors import red
 from config import DEBUG, STATUS_PORT, LOG_PORT
-from jobs import Job
+from jobs import Job, BuildStatusUpdateReq
 
 context = zmq.Context.instance()
 status_pub = context.socket(zmq.PUB)
@@ -23,18 +24,10 @@ def push_webhook(update_type: str = "QUEUE", update_state: Job | None = None):
         global active_status
         active_status = update_state
     try:
-        # An abomination :prayer_hands:
-        status_pub.send_string(
-            '"update": {'
-            f'"type": {update_type},'
-            f'"state": {update_state.to_json() if update_state else None},'
-            "},"
-            f'"status": {active_status.status if active_status else None},'
-            '"build": {'
-            f'"active": {active_build.to_json() if active_build else None},'
-            '"queue": [' + action.to_json_string()
-            for action in list(BUILD_QUEUE.queue) + "]," + "}," + "}"
-        )
+        status = {
+            "active": [active_status.to_json()] if active_status is not None else [],
+            "queue": [t.to_json() for t in list(BUILD_QUEUE.queue)],
+        }
+        print(json.dumps(status))
     except requests.RequestException as e:
-        print(red("[ZMQ] Could not publish to zmq"))
         traceback.print_exc()
