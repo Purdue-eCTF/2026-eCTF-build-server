@@ -95,17 +95,17 @@ def build(job: ActionResult):
         try:
             if os.getenv("DOCKER"):
                 # docker-in-docker jank
-                # ectf_build_server_build_out is volume mounted to ~/mounts/build_out which is symlinked to ~/src/ectf-design-repo/build_out
-                # ectf_build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
-                # ectf_build_server_firmware is volume mounted to ~/mounts/firmware which is symlinked to ~/src/ectf-design-repo/firmware
+                # build_server_build_out is volume mounted to ~/mounts/build_out which is symlinked to ~/src/ectf-design-repo/build_out
+                # build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
+                # build_server_firmware is volume mounted to ~/mounts/firmware which is symlinked to ~/src/ectf-design-repo/firmware
                 output = subprocess.run(
                     "cd ectf-design-repo &&"
                     "rm -rf build_out/* ~/mounts/firmware/* &&"
                     "(docker build -t build-hsm ./firmware &&"
                     "cp -r ./firmware/* ~/mounts/firmware &&"
-                    "docker run --rm -v ectf_build_server_firmware:/hsm "
-                    "-v ectf_build_server_secrets:/secrets "
-                    "-v ectf_build_server_build_out:/out -e HSM_PIN='1a2b3c' "
+                    "docker run --rm -v build_server_firmware:/hsm "
+                    "-v build_server_secrets:/secrets "
+                    "-v build_server_build_out:/out -e HSM_PIN='1a2b3c' "
                     "-e PERMISSIONS='1234=R--:4321=RWC' build-hsm) && "
                     '[ -n "$(ls -A build_out 2>/dev/null)" ]',
                     shell=True,
