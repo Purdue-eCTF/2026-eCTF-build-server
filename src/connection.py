@@ -38,66 +38,34 @@ def serve():
             print(f"[CONN] New connection from {addr}")
 
             try:
-                token, method = conn.recv(1024).decode().split("|")
+                token = conn.recv(1024).decode()
                 if token != AUTH_TOKEN:
                     print("[CONN] Invalid connection, wrong token")
                     conn.close()
                     continue
 
-                if method == "build-ours":
-                    conn.sendall(b"[CONN] Building our design\n")
-                    hash, author, name, run_id = (
-                        conn.recv(1024).decode("utf-8").split("|")
-                    )
-                    print(f"[CONN] New build request for commit {hash}...")
+                conn.sendall(b"[CONN] Building design\n")
+                hash, author, message, run_id = (
+                    conn.recv(1024).decode("utf-8").split(chr(0x1B))
+                )
+                print(f"[CONN] New build request for commit {hash}...")
 
-                    if len(hash) > 40 or len(hash) < 7 or re.search(r"[^0-9a-f]", hash):
-                        print(f"[CONN] Invalid hash {hash}")
-                        conn.sendall(f"[CONN] Invalid hash {hash}\n".encode())
-                        conn.close()
-                        continue
+                if len(hash) > 40 or len(hash) < 7 or re.search(r"[^0-9a-f]", hash):
+                    print(f"[CONN] Invalid hash {hash}")
+                    conn.sendall(f"[CONN] Invalid hash {hash}\n".encode())
+                    conn.close()
+                    continue
 
-                    print(f"[CONN] Queuing build for commit {hash}...")
+                print(f"[CONN] Queuing build for commit {hash}...")
 
-                    req = ActionResult(
-                        conn,
-                        ActionStatus.BUILD_PENDING,
-                        time.time(),
-                        Commit(hash, author, name, run_id),
-                    )
-                    add_to_build_queue(req)
-                    push_webhook()
-                elif method == "attack-target":
-                    conn.sendall(b"[CONN] Attacking target design\n")
-                    team = conn.recv(1024).decode("utf-8")
-
-                    if "/" in team:
-                        print(f"[CONN] Invalid team {team}")
-                        conn.sendall(f"[CONN] Invalid team{team}\n".encode())
-                        conn.close()
-                        continue
-
-                    # add_to_dist_queue(AttackingJob(conn, "PENDING", time.time(), team))
-                    push_webhook()
-                elif method == "attack-script":
-                    conn.sendall(b"[CONN] Attacking target with manual attack script\n")
-                    team, script_url = conn.recv(1024).decode("utf-8").split("|")
-
-                    if not is_url(script_url):
-                        # not security critical, just a sanity check
-                        print(f"[CONN] Invalid script url {script_url}")
-                        conn.sendall(f"[CONN] Invalid script url {script_url}\n".encode())
-                        conn.close()
-                        continue
-
-                    # add_to_dist_queue(
-                    #     AttackScriptJob(conn, "PENDING", time.time(), team, script_url)
-                    # )
-                    push_webhook()
-                elif method == "update-ci":
-                    conn.sendall(b"[CONN] Updating CI\n")
-                    # UpdateCIJob(conn, "PENDING", time.time()).update_ci()
-
+                req = ActionResult(
+                    conn,
+                    ActionStatus.BUILD_PENDING,
+                    time.time(),
+                    Commit(hash, author, message, run_id),
+                )
+                add_to_build_queue(req)
+                push_webhook()
             except Exception:  # noqa: BLE001
                 traceback.print_exc()
                 conn.close()

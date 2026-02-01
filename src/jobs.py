@@ -46,19 +46,20 @@ class Job:
 
     def log(self, msg: str):
         print(msg)
-        if not self.socket_colors:
-            msg = re.sub(r"\x1b\[[0-9;]*m", "", msg)
-        self.conn.sendall(msg.encode() + b"\n")
+        # TODO: pub to zmq
+        # if not self.socket_colors:
+        #     msg = re.sub(r"\x1b\[[0-9;]*m", "", msg)
+        # self.conn.sendall(msg.encode() + b"\n")
 
     def on_error(self, e: Exception, msg: str):
         self.log(red(msg))
-        if isinstance(e, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
-            self.conn.sendall(e.stdout or b"")
-            self.conn.sendall(e.stderr or b"")
+        # if isinstance(e, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
+        #     self.conn.sendall(e.stdout or b"")
+        #     self.conn.sendall(e.stderr or b"")
         self.log(red(traceback.format_exc()))
-        self.conn.sendall(b"%*&1\n")
+        self.conn.sendall(b"1\n")
         self.conn.close()
-        self.status = "FAILED"
+        self.status = ActionStatus.BUILD_FAILED
 
 
 class ActionResult(Job):

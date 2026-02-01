@@ -1,14 +1,14 @@
-name: ectf_build_server
+name: build_server
 services:
-    ectf_build_server:
-        container_name: ectf_build_server
+    build_server:
+        container_name: build_server
         build:
             dockerfile: ./Dockerfile
             context: .
         ports:
-            - "8888:8888"
-            - "10001:10001"
-            - "10003:10003"
+            - "8124:8124"
+            - "8131:8131"
+            - "8125:8125"
         restart: always
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
@@ -16,7 +16,13 @@ services:
             - build_out:/root/mounts/build_out
             - secrets:/root/mounts/secrets
             - ../scrape-bot/temp:/root/mounts/targets
+        networks:
+            - infra
 volumes:
     firmware:
     build_out:
     secrets:
+
+networks:
+    infra:
+        external: true
