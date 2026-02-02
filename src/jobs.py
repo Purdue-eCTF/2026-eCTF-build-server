@@ -2,8 +2,9 @@ import traceback
 from dataclasses import dataclass
 from socket import socket
 from enum import Enum
+import subprocess
 
-from colors import red
+from colors import red, blue
 
 
 @dataclass
@@ -42,13 +43,6 @@ class Job:
     def to_json(self):
         return {}
 
-    def log(self, msg: str):
-        print(msg)
-        # TODO: pub to zmq
-        # if not self.socket_colors:
-        #     msg = re.sub(r"\x1b\[[0-9;]*m", "", msg)
-        # self.conn.sendall(msg.encode() + b"\n")
-
     def on_success(self):
         self.update_status(ActionStatus.SUCCESS)
         self.conn.sendall(b"0\n")
@@ -86,6 +80,12 @@ class ActionResult(Job):
             "start": round(self.start_time),
             "commit": self.commit.to_json(),
         }
+
+    def log(self, msg: str):
+        from publish import publish_logs
+
+        print(msg)
+        publish_logs(self.commit.run_id, msg)
 
 
 @dataclass

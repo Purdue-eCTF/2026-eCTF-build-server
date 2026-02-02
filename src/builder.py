@@ -34,7 +34,7 @@ def build(job: ActionResult):
     build_folder = f"./builds/{job.commit.run_id}"
 
     try:
-        job.log(blue("[BUILD] Pulling from repo..."))
+        job.log("[BUILD] Pulling from repo...")
         # pull from repo
         try:
             output = subprocess.run(
@@ -48,8 +48,6 @@ def build(job: ActionResult):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            job.log(output.stdout)
-            job.log(output.stderr)
         except subprocess.CalledProcessError as e:
             job.on_error(
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! No commit found."
@@ -58,7 +56,7 @@ def build(job: ActionResult):
             job.update_status(ActionStatus.BUILD_FAILED)
             return
 
-        job.log(blue("[BUILD] Building secrets..."))
+        job.log("[BUILD] Building secrets...")
         # build secrets
         try:
             output = subprocess.run(
@@ -84,7 +82,7 @@ def build(job: ActionResult):
             job.update_status(ActionStatus.BUILD_FAILED)
             return
 
-        job.log(blue("[BUILD] Building firmware..."))
+        job.log("[BUILD] Building firmware...")
         # build firmware
         try:
             if os.getenv("DOCKER"):
@@ -146,7 +144,7 @@ def build(job: ActionResult):
             job.update_status(ActionStatus.BUILD_FAILED)
             return
 
-        job.log(blue(f"[BUILD] Built {job.commit.hash}!"))
+        job.log(f"[BUILD] Built {job.commit.hash}!")
 
         active_build = None
         publish_status()
