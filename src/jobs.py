@@ -1,5 +1,3 @@
-import re
-import subprocess
 import traceback
 from dataclasses import dataclass
 from socket import socket
@@ -24,7 +22,7 @@ class Commit:
         }
 
 
-class ActionStatus:
+class ActionStatus(Enum):
     SUCCESS = "SUCCESS"
     TESTING = "TESTING"
     BUILDING = "BUILDING"
@@ -59,7 +57,13 @@ class Job:
         self.log(red(traceback.format_exc()))
         self.conn.sendall(b"1\n")
         self.conn.close()
-        self.status = ActionStatus.BUILD_FAILED
+        self.update_status(ActionStatus.BUILD_FAILED)
+
+    def update_status(self, status: ActionStatus):
+        from publish import publish_status
+
+        self.status = status
+        publish_status(self)
 
 
 class ActionResult(Job):

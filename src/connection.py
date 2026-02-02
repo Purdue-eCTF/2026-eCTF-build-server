@@ -11,7 +11,7 @@ from config import AUTH_TOKEN, PORT
 
 # from distribution import AttackingJob, AttackScriptJob, UpdateCIJob, add_to_dist_queue
 from jobs import ActionResult, Commit, ActionStatus
-from webhook import push_webhook
+from publish import publish_status
 
 
 # https://stackoverflow.com/a/52455972
@@ -65,7 +65,7 @@ def serve():
                     Commit(hash, author, message, run_id),
                 )
                 add_to_build_queue(req)
-                push_webhook()
+                publish_status()
             except Exception:  # noqa: BLE001
                 traceback.print_exc()
                 conn.close()

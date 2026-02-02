@@ -11,7 +11,7 @@ from config import DESIGN_REPO, GITHUB_TOKEN
 
 # from distribution import TestingJob, add_to_dist_queue
 from jobs import ActionResult, ActionStatus
-from webhook import push_webhook
+from publish import publish_status
 
 BUILD_QUEUE: Queue[ActionResult] = Queue()
 active_build: ActionResult | None = None
@@ -28,9 +28,8 @@ def add_to_build_queue(job: ActionResult):
 def build(job: ActionResult):
     global active_build  # noqa: PLW0603
     active_build = job
-    job.status = ActionStatus.BUILDING
     job.start_time = time.time()
-    push_webhook("BUILD", job)
+    job.update_status(ActionStatus.BUILDING)
 
     build_folder = f"./builds/{job.commit.run_id}"
 
@@ -56,14 +55,12 @@ def build(job: ActionResult):
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! No commit found."
             )
 
-            job.status = ActionStatus.BUILD_FAILED
-            push_webhook("BUILD", job)
+            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         job.log(blue("[BUILD] Building secrets..."))
         # build secrets
         try:
-            # todo: change active channels
             output = subprocess.run(
                 "cd ectf-design-repo &&"
                 "rm -rf secrets/* &&"
@@ -76,8 +73,6 @@ def build(job: ActionResult):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            job.log(output.stdout)
-            job.log(output.stderr)
         except subprocess.CalledProcessError as e:
             job.on_error(
                 e,
@@ -86,8 +81,7 @@ def build(job: ActionResult):
                 }! Failed to build secrets!\nError: {e.output}",
             )
 
-            job.status = ActionStatus.BUILD_FAILED
-            push_webhook("BUILD", job)
+            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         job.log(blue("[BUILD] Building firmware..."))
@@ -134,8 +128,7 @@ def build(job: ActionResult):
                 }! Build failed!\nError: {e.output}",
             )
 
-            job.status = ActionStatus.BUILD_FAILED
-            push_webhook("BUILD", job)
+            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         # output in build_out
@@ -150,14 +143,13 @@ def build(job: ActionResult):
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!"
             )
 
-            job.status = ActionStatus.BUILD_FAILED
-            push_webhook("BUILD", job)
+            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         job.log(blue(f"[BUILD] Built {job.commit.hash}!"))
 
         active_build = None
-        push_webhook()
+        publish_status()
 
         # add_to_dist_queue(
         #     TestingJob(
@@ -182,7 +174,7 @@ def build_loop():
             print(red("[BUILD] Client disconnected"))
         except Exception:  # noqa: BLE001
             # error handling :tm:
-            push_webhook("BUILD", job)
+            publish_status(job)
             traceback.print_exc()
 
 
@@ -274,4 +266,5 @@ def init_build_queue():
     subprocess.run(["mkdir", "-p", "./builds"], check=True)
 
     print(blue("[BUILD] Build queue ready..."))
+    publish_status()
     Thread(target=build_loop, daemon=True).start()

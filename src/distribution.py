@@ -16,7 +16,7 @@ import requests
 from colors import blue, red
 from config import GITHUB_TOKEN, GITHUB_USERNAME, IPS
 from jobs import Commit, Job
-from webhook import push_webhook
+from publish import publish_status
 
 distribution_queue: Queue["DistributionJob"] = Queue()
 upload_status: dict[str, "UploadServerStatus"] = {}
@@ -46,7 +46,7 @@ class DistributionJob(Job):
     def distribute(self, ip: str):
         self.status = "UPLOADING"
         self.start_time = time.time()
-        push_webhook(self.queue_type, self)
+        publish_status(self.queue_type, self)
 
         firmware_file = Path(self.in_path).name
         try:
@@ -62,7 +62,7 @@ class DistributionJob(Job):
                     self.log(f"[DIST] {ip} is disconnected, changing servers")
 
                     self.status = "PENDING"
-                    push_webhook(self.queue_type, self)
+                    publish_status(self.queue_type, self)
 
                     upload_status[ip].connected = False
                     add_to_dist_queue(self)
@@ -70,7 +70,7 @@ class DistributionJob(Job):
                     self.on_error(e, f"[DIST] Failed to upload to {ip}")
 
                     self.status = "FAILED"
-                    push_webhook(self.queue_type, self)
+                    publish_status(self.queue_type, self)
                 return
 
             # flash binary
@@ -101,7 +101,7 @@ class DistributionJob(Job):
                 self.on_error(e, f"[DIST] Failed to flash on {ip}")
 
                 self.status = "FAILED"
-                push_webhook(self.queue_type, self)
+                publish_status(self.queue_type, self)
                 return
 
             self.log(blue("[DIST] Flashed!"))
@@ -176,7 +176,7 @@ class TestingJob(DistributionJob):
 
     def post_upload(self, ip: str):
         self.status = "TESTING"
-        push_webhook("TEST", self)
+        publish_status("TEST", self)
 
         # run tests
         self.log(blue(f"[TEST] Running tests for {self.name}"))
@@ -196,7 +196,7 @@ class TestingJob(DistributionJob):
             self.on_error(e, f"[TEST] Failed to upload to {ip}")
 
             self.status = "FAILED"
-            push_webhook("TEST", self)
+            publish_status("TEST", self)
             return
 
         self.log(blue(f"[TEST] Running tests on {ip}"))
@@ -226,14 +226,14 @@ class TestingJob(DistributionJob):
             self.on_error(e, f"[TEST] Tests failed for {self.name}")
 
             self.status = "FAILED"
-            push_webhook("TEST", self)
+            publish_status("TEST", self)
             return
 
         self.log(blue(f"[TEST] Tests OK for {self.name}"))
         self.conn.sendall(b"%*&0\n")
         self.conn.close()
         self.status = "SUCCESS"
-        push_webhook("TEST", self)
+        publish_status("TEST", self)
 
     def cleanup(self):
         shutil.rmtree(self.build_folder)
@@ -263,7 +263,7 @@ class AttackingJob(DistributionJob):
 
     def post_upload(self, ip: str):
         self.status = "ATTACKING"
-        push_webhook("ATTACK", self)
+        publish_status("ATTACK", self)
 
         # upload attack data to server
         self.log(blue(f"[ATTACK] Uploading attack data to {ip}"))
@@ -286,7 +286,7 @@ class AttackingJob(DistributionJob):
             self.on_error(e, f"[ATTACK] Failed to upload to {ip}")
 
             self.status = "FAILED"
-            push_webhook("ATTACK", self)
+            publish_status("ATTACK", self)
             return
 
         # run attacks
@@ -316,14 +316,14 @@ class AttackingJob(DistributionJob):
             self.on_error(e, f"[ATTACK] Attacks failed for {self.name}")
 
             self.status = "FAILED"
-            push_webhook("ATTACK", self)
+            publish_status("ATTACK", self)
             return
 
         self.log(blue(f"[ATTACK] ATTACK OK for {self.name}"))
         self.conn.sendall(b"%*&0\n")
         self.conn.close()
         self.status = "SUCCESS"
-        push_webhook("ATTACK", self)
+        publish_status("ATTACK", self)
 
 
 class AttackScriptJob(DistributionJob):
@@ -352,7 +352,7 @@ class AttackScriptJob(DistributionJob):
 
     def post_upload(self, ip: str):
         self.status = "ATTACKING"
-        push_webhook("ATTACK", self)
+        publish_status("ATTACK", self)
 
         # download attack script
         self.log(blue("[ATTACK] Downloading attack script"))
@@ -365,7 +365,7 @@ class AttackScriptJob(DistributionJob):
                     )
                 )
                 self.status = "FAILED"
-                push_webhook("ATTACK", self)
+                publish_status("ATTACK", self)
                 return
 
             script_filename = urlparse(self.script_url).path.split("/")[-1]
@@ -373,13 +373,13 @@ class AttackScriptJob(DistributionJob):
             if "/" in script_filename:
                 self.log(red(f"[ATTACK] Invalid filename {script_filename}"))
                 self.status = "FAILED"
-                push_webhook("ATTACK", self)
+                publish_status("ATTACK", self)
                 return
         except requests.Timeout as e:
             self.on_error(e, f"[ATTACK] Failed to upload to {ip}")
 
             self.status = "FAILED"
-            push_webhook("ATTACK", self)
+            publish_status("ATTACK", self)
             return
 
         # upload attack data to server
@@ -408,7 +408,7 @@ class AttackScriptJob(DistributionJob):
             self.on_error(e, f"[ATTACK] Failed to upload to {ip}")
 
             self.status = "FAILED"
-            push_webhook("ATTACK", self)
+            publish_status("ATTACK", self)
             return
 
         # run attack
@@ -450,14 +450,14 @@ class AttackScriptJob(DistributionJob):
             self.on_error(e, f"[ATTACK] Attacks failed for {self.name}")
 
             self.status = "FAILED"
-            push_webhook("ATTACK", self)
+            publish_status("ATTACK", self)
             return
 
         self.log(blue(f"[ATTACK] ATTACK OK for {self.name}"))
         self.conn.sendall(b"%*&0\n")
         self.conn.close()
         self.status = "SUCCESS"
-        push_webhook("ATTACK", self)
+        publish_status("ATTACK", self)
 
 
 class UpdateCIJob(Job):
@@ -530,7 +530,7 @@ def distribution_loop():
         req.status = "TESTING"
         req.start_time = time.time()
         upload_status[avail_ip].job = req
-        push_webhook()
+        publish_status()
         threading.Thread(target=req.distribute, args=(avail_ip,), daemon=True).start()
 
 
@@ -549,7 +549,7 @@ def init_distribution_queue():
             )
             upload_status[ip] = UploadServerStatus()
             server_queues[queue_type].put(ip)
-    push_webhook()
+    publish_status()
     print(blue(f"[DIST] Loaded {len(IPS)} ips"))
 
     print(blue("[DIST] Dist queue ready..."))

@@ -1,19 +1,17 @@
-import traceback
 import zmq
-import json
+from msgspec import json
 
-from colors import red
 from config import DEBUG, STATUS_PORT, LOG_PORT
-from jobs import Job, BuildStatusUpdateReq
+from jobs import Job
 
 context = zmq.Context.instance()
 status_pub = context.socket(zmq.PUB)
-status_pub.connect(f"tcp://localhost:{STATUS_PORT}")
+status_pub.bind(f"tcp://*:{STATUS_PORT}")
 active_status: Job | None = None
 
 
-def push_webhook(update_type: str = "QUEUE", update_state: Job | None = None):
-    from builder import BUILD_QUEUE, active_build  # noqa: PLC0415
+def publish_status(update_state: Job | None = None):
+    from builder import BUILD_QUEUE
 
     if DEBUG:  # disable webhook while debugging
         return
@@ -25,6 +23,5 @@ def push_webhook(update_type: str = "QUEUE", update_state: Job | None = None):
         "active": [active_status.to_json()] if active_status is not None else [],
         "queue": [t.to_json() for t in list(BUILD_QUEUE.queue)],
     }
-    message = json.dumps(status)
-    print(message)
-    status_pub.send(message.encode("UTF-8"))
+    message = json.encode(status)
+    status_pub.send(message)
