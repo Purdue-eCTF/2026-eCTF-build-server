@@ -49,11 +49,16 @@ class Job:
         #     msg = re.sub(r"\x1b\[[0-9;]*m", "", msg)
         # self.conn.sendall(msg.encode() + b"\n")
 
+    def on_success(self):
+        self.update_status(ActionStatus.SUCCESS)
+        self.conn.sendall(b"0\n")
+        self.conn.close()
+
     def on_error(self, e: Exception, msg: str):
         self.log(red(msg))
-        # if isinstance(e, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
-        #     self.conn.sendall(e.stdout or b"")
-        #     self.conn.sendall(e.stderr or b"")
+        if isinstance(e, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
+            self.log(e.stdout or b"")
+            self.log(e.stderr or b"")
         self.log(red(traceback.format_exc()))
         self.conn.sendall(b"1\n")
         self.conn.close()
