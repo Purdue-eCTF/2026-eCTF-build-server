@@ -1,16 +1,24 @@
 import zmq
 from msgspec import json
+from zmq.auth.asyncio import AsyncioAuthenticator
 
-from config import DEBUG, STATUS_PORT, LOG_PORT
+from config import DEBUG, STATUS_PORT, LOG_PORT, AUTH_TOKEN
 from jobs import Job
 
 context = zmq.Context.instance()
+
+auth = AsyncioAuthenticator(context)
+auth.configure_plain(domain="*", passwords={"user": AUTH_TOKEN})
+auth.start()
+
 status_pub = context.socket(zmq.PUB)
 status_pub.bind(f"tcp://*:{STATUS_PORT}")
+status_pub.setsockopt(zmq.PLAIN_SERVER, 1)
 active_status: Job | None = None
 
 log_pub = context.socket(zmq.PUB)
 log_pub.bind(f"tcp://*:{LOG_PORT}")
+log_pub.setsockopt(zmq.PLAIN_SERVER, 1)
 
 
 def publish_logs(run_id: str, msg: str | bytes):
