@@ -22,8 +22,6 @@ if __name__ == "__main__":
         f"{sys.argv[1]}{sep}{sys.argv[2]}{sep}{sys.argv[3]}{sep}{sys.argv[4]}".encode()
     )
 
-    while True:
-        data = conn.recv(1024)
-        line = data.decode(errors="ignore")
-        sys.exit(int(line.split("\n")[0]))
-        print(line, end="")
+data = conn.recv(1024)
+line = data.decode(errors="ignore")
+sys.exit(int(line.split("\n")[0]))
