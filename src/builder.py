@@ -148,16 +148,6 @@ def build(job: ActionResult):
 
         active_build = None
         publish_status()
-
-        # add_to_dist_queue(
-        #     TestingJob(
-        #         job.conn,
-        #         "PENDING",
-        #         time.time(),
-        #         build_folder,
-        #         job.commit,
-        #     )
-        # )
     finally:
         active_build = None
         BUILD_QUEUE.task_done()

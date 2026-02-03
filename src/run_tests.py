@@ -48,7 +48,6 @@ async def run_tests(job: Job) -> bytes:
 
     job.log("[Client] Dev test output:", result)
     job.on_success()
-    client.close()
     return board_image
 
 
