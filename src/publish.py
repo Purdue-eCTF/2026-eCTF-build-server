@@ -14,7 +14,7 @@ log_pub.bind(f"tcp://*:{LOG_PORT}")
 
 
 def publish_logs(run_id: str, msg: str):
-    log_pub.send(f"{run_id}-build {msg}".encode())
+    log_pub.send_multipart([f"{run_id}-build", msg])
 
 
 def publish_status(update_state: Job | None = None):
