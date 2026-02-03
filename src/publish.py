@@ -1,15 +1,15 @@
 import zmq
 from msgspec import json
-from zmq.auth.asyncio import AsyncioAuthenticator
+from zmq.auth.thread import ThreadAuthenticator
 
-from config import DEBUG, STATUS_PORT, LOG_PORT, AUTH_TOKEN
+from config import AUTH_TOKEN, DEBUG, LOG_PORT, STATUS_PORT
 from jobs import Job
 
 context = zmq.Context.instance()
 
-auth = AsyncioAuthenticator(context)
-auth.configure_plain(domain="*", passwords={"user": AUTH_TOKEN})
+auth = ThreadAuthenticator(context)
 auth.start()
+auth.configure_plain(domain="*", passwords={"user": AUTH_TOKEN})
 
 status_pub = context.socket(zmq.PUB)
 status_pub.setsockopt(zmq.PLAIN_SERVER, 1)
