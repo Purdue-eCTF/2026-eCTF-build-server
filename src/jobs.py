@@ -1,10 +1,10 @@
+import subprocess
 import traceback
 from dataclasses import dataclass
-from socket import socket
 from enum import Enum
-import subprocess
+from socket import socket
 
-from colors import red, blue
+from colors import red
 
 
 @dataclass
@@ -38,10 +38,14 @@ class Job:
     conn: socket
     status: ActionStatus
     start_time: float
-    socket_colors: bool
+    commit: Commit
 
     def to_json(self):
-        return {}
+        return {
+            "status": self.status,
+            "start": round(self.start_time),
+            "commit": self.commit.to_json(),
+        }
 
     def on_success(self):
         self.update_status(ActionStatus.SUCCESS)
@@ -67,23 +71,6 @@ class Job:
         self.status = status
         publish_status(self)
 
-
-class ActionResult(Job):
-    commit: Commit
-
-    def __init__(self, conn, status, start_time, commit):
-        self.commit = commit
-        super().__init__(
-            conn=conn, status=status, start_time=start_time, socket_colors=True
-        )
-
-    def to_json(self):
-        return {
-            "status": self.status,
-            "start": round(self.start_time),
-            "commit": self.commit.to_json(),
-        }
-
     def log(self, msg: str):
         from publish import publish_logs
 
@@ -93,5 +80,5 @@ class ActionResult(Job):
 
 @dataclass
 class BuildStatusUpdateReq:
-    active: list[ActionResult]
-    queue: list[ActionResult]
+    active: list[Job]
+    queue: list[Job]

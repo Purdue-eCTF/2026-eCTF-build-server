@@ -10,7 +10,7 @@ from colors import blue
 from config import AUTH_TOKEN, PORT
 
 # from distribution import AttackingJob, AttackScriptJob, UpdateCIJob, add_to_dist_queue
-from jobs import ActionResult, Commit, ActionStatus
+from jobs import ActionStatus, Commit, Job
 from publish import publish_status
 
 
@@ -58,7 +58,7 @@ def serve():
 
                 print(f"[CONN] Queuing build for commit {hash}...")
 
-                req = ActionResult(
+                req = Job(
                     conn,
                     ActionStatus.BUILD_PENDING,
                     time.time(),

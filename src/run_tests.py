@@ -24,7 +24,7 @@ async def run_tests(job: Job):
         config.auth_token = AUTH_TOKEN
         client = ProvisionClient(config, "test-client-" + job.commit.run_id)
         board = await client.provision_board(BoardType.DEV)
-        job.log("[TEST] Provisioned board:", board.name)
+        job.log("[TEST] Provisioned board: " + board.name)
 
         job.update_status(ActionStatus.TESTING)
         publish_status()
@@ -46,9 +46,3 @@ async def run_tests(job: Job):
     finally:
         publish_status()
         shutil.rmtree(build_folder)
-
-
-if __name__ == "__main__":
-    board_image, test_output = asyncio.run(run_tests())
-    print("board_image bytes:", len(board_image))
-    print("test_output bytes:", len(test_output))
