@@ -12,13 +12,13 @@ auth.configure_plain(domain="*", passwords={"user": AUTH_TOKEN})
 auth.start()
 
 status_pub = context.socket(zmq.PUB)
-status_pub.bind(f"tcp://*:{STATUS_PORT}")
 status_pub.setsockopt(zmq.PLAIN_SERVER, 1)
+status_pub.bind(f"tcp://*:{STATUS_PORT}")
 active_status: Job | None = None
 
 log_pub = context.socket(zmq.PUB)
-log_pub.bind(f"tcp://*:{LOG_PORT}")
 log_pub.setsockopt(zmq.PLAIN_SERVER, 1)
+log_pub.bind(f"tcp://*:{LOG_PORT}")
 
 
 def publish_logs(run_id: str, msg: str | bytes):
