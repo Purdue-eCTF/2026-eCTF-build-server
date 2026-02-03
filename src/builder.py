@@ -39,9 +39,9 @@ def build(job: ActionResult):
         try:
             output = subprocess.run(
                 "cd ectf-design-repo &&"
-                # "git checkout main &&"
-                # "git fetch &&"
-                # "git reset --hard origin/main &&"
+                "git checkout main &&"
+                "git fetch &&"
+                "git reset --hard origin/main &&"
                 f"git checkout {job.commit.hash}",
                 shell=True,
                 check=True,
