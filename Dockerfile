@@ -2,7 +2,7 @@ FROM docker:27-dind
 
 RUN apk update && apk upgrade && apk add github-cli python3 py3-pip openssh-client rsync curl
 
-RUN pip install wheel --break-system-packages && pip install colorama requests pyzmq msgspec --break-system-packages
+RUN pip install wheel --break-system-packages && pip install uv colorama requests pyzmq msgspec --break-system-packages
 
 COPY src /root/src
 WORKDIR /root/src

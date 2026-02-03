@@ -53,7 +53,6 @@ def build(job: ActionResult):
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! No commit found."
             )
 
-            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         job.log("[BUILD] Building secrets...")
@@ -64,8 +63,7 @@ def build(job: ActionResult):
                 "rm -rf secrets/* &&"
                 "mkdir -p secrets &&"
                 ". ./.venv/bin/activate &&"
-                "pip install -e ./ectf26_design &&"
-                "python -m gen_secrets ./secrets/global.secrets 1 2 3 4",
+                "uv run secrets ./secrets/global.secrets 1 2 3 4",
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
@@ -79,7 +77,6 @@ def build(job: ActionResult):
                 }! Failed to build secrets!\nError: {e.output}",
             )
 
-            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         job.log("[BUILD] Building firmware...")
@@ -126,7 +123,6 @@ def build(job: ActionResult):
                 }! Build failed!\nError: {e.output}",
             )
 
-            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         # output in build_out
@@ -141,7 +137,6 @@ def build(job: ActionResult):
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!"
             )
 
-            job.update_status(ActionStatus.BUILD_FAILED)
             return
 
         job.log(f"[BUILD] Built {job.commit.hash}!")

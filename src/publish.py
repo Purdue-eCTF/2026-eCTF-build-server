@@ -13,8 +13,10 @@ log_pub = context.socket(zmq.PUB)
 log_pub.bind(f"tcp://*:{LOG_PORT}")
 
 
-def publish_logs(run_id: str, msg: str):
-    log_pub.send_multipart([f"{run_id}-build".encode(), msg.encode()])
+def publish_logs(run_id: str, msg: str | bytes):
+    if isinstance(msg, str):
+        msg = msg.encode()
+    log_pub.send_multipart([f"{run_id}-build".encode(), msg])
 
 
 def publish_status(update_state: Job | None = None):
