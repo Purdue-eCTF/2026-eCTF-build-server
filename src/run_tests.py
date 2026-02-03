@@ -1,18 +1,19 @@
 import asyncio
 import os
 from pathlib import Path
-from config import AUTH_TOKEN
 
 from boardtools import ProvisionClient, ProvisionConfig
 from provision_common import BoardType, TestType
 
+from config import AUTH_TOKEN
 from jobs import Job
 
 
 async def run_tests(job: Job):
-    job.log("[TEST] Extracting board image from Docker volume...")
-    with (Path.home() / "mounts/build_out/hsm.bin").open("rb") as f:
-        board_image = f.read()
+    try:
+        job.log("[TEST] Extracting board image from Docker volume...")
+        with (Path.home() / "mounts/build_out/hsm.bin").open("rb") as f:
+            board_image = f.read()
 
         job.log(f"[TEST] Board image extracted ({len(board_image)} bytes).")
 

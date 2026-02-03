@@ -8,14 +8,14 @@ from threading import Thread
 
 from colors import blue, red
 from config import DESIGN_REPO, GITHUB_TOKEN
-from jobs import ActionResult, ActionStatus
+from jobs import ActionStatus, Job
 from publish import publish_status
 
-BUILD_QUEUE: Queue[ActionResult] = Queue()
-active_build: ActionResult | None = None
+BUILD_QUEUE: Queue[Job] = Queue()
+active_build: Job | None = None
 
 
-def add_to_build_queue(job: ActionResult):
+def add_to_build_queue(job: Job):
     """
     Add a job to the build queue
     :param job: The job to add
@@ -23,7 +23,7 @@ def add_to_build_queue(job: ActionResult):
     BUILD_QUEUE.put(job)
 
 
-def build(job: ActionResult):
+def build(job: Job):
     global active_build  # noqa: PLW0603
     active_build = job
     job.start_time = time.time()
