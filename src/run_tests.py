@@ -8,7 +8,7 @@ from provision_common import BoardType, TestType
 from jobs import Job
 
 
-async def run_tests(job: Job) -> bytes:
+async def run_tests(job: Job):
     HOST_DIR = Path.cwd()
     VOLUME_NAME = "build_server_build_out"
     FILENAME = "hsm.bin"
@@ -48,7 +48,6 @@ async def run_tests(job: Job) -> bytes:
 
     job.log("[Client] Dev test output:", result)
     job.on_success()
-    return board_image
 
 
 if __name__ == "__main__":

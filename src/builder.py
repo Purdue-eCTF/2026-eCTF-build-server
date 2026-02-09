@@ -9,7 +9,6 @@ from threading import Thread
 from colors import blue, red
 from config import DESIGN_REPO, GITHUB_TOKEN
 
-# from distribution import TestingJob, add_to_dist_queue
 from jobs import ActionResult, ActionStatus
 from publish import publish_status
 
@@ -143,6 +142,9 @@ def build(job: ActionResult):
 
         active_build = None
         publish_status()
+        from run_tests import run_tests
+
+        Thread(target=run_tests, args=(job)).start()
     finally:
         active_build = None
         BUILD_QUEUE.task_done()
@@ -232,7 +234,8 @@ def init_build_queue():
             "cd ectf-design-repo &&"
             "python -m venv .venv --prompt ectf-example &&"
             ". ./.venv/bin/activate &&"
-            "python -m pip install -e ./ectf26_design/",
+            "python -m pip install -e ./ectf26_design/ && "
+            "python -m pip install git+https://github.com/Purdue-eCTF/2026-eCTF-provision-server#subdirectory=provision_common git+https://github.com/Purdue-eCTF/2026-eCTF-provision-server#subdirectory=boardtools",
             shell=True,
             timeout=60,
             stdout=subprocess.PIPE,
