@@ -50,7 +50,9 @@ def build(job: ActionResult):
             )
         except subprocess.CalledProcessError as e:
             job.on_error(
-                e, f"[BUILD] Failed to build commit {job.commit.hash}! No commit found."
+                e,
+                f"[BUILD] Failed to build commit {job.commit.hash}! No commit found.",
+                ActionStatus.BUILD_FAILED,
             )
             publish_status(job)
 
@@ -76,6 +78,7 @@ def build(job: ActionResult):
                 f"[BUILD] Failed to build commit {
                     job.commit.hash
                 }! Failed to build secrets!\nError: {e.output}",
+                ActionStatus.BUILD_FAILED,
             )
             publish_status(job)
 
@@ -112,6 +115,7 @@ def build(job: ActionResult):
                 f"[BUILD] Failed to build commit {
                     job.commit.hash
                 }! Build failed!\nError: {e.output}",
+                ActionStatus.BUILD_FAILED,
             )
             publish_status(job)
 
@@ -128,7 +132,9 @@ def build(job: ActionResult):
             )
         except subprocess.CalledProcessError as e:
             job.on_error(
-                e, f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!"
+                e,
+                f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!",
+                ActionStatus.BUILD_FAILED,
             )
             publish_status(job)
 
