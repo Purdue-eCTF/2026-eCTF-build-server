@@ -14,7 +14,7 @@ async def run_tests(job: Job):
     build_folder = Path(f"./builds/{job.commit.run_id}")
     try:
         job.log("[TEST] Extracting board image from Docker volume...")
-        with (build_folder / "hsm.bin").open("rb") as f:
+        with (build_folder / "build_out/hsm.bin").open("rb") as f:
             board_image = f.read()
 
         job.log(f"[TEST] Board image extracted ({len(board_image)} bytes).")

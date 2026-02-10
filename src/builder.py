@@ -84,37 +84,26 @@ def build(job: ActionResult):
         job.log("[BUILD] Building firmware...")
         # build firmware
         try:
-            if os.getenv("DOCKER"):
-                # docker-in-docker jank
-                # build_server_build_out is volume mounted to ~/mounts/build_out which is symlinked to ~/src/ectf-design-repo/build_out
-                # build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
-                # build_server_firmware is volume mounted to ~/mounts/firmware which is symlinked to ~/src/ectf-design-repo/firmware
-                output = subprocess.run(
-                    "cd ectf-design-repo &&"
-                    "rm -rf build_out/* ~/mounts/firmware/* &&"
-                    "(docker build -t build-hsm ./firmware &&"
-                    "cp -r ./firmware/* ~/mounts/firmware &&"
-                    "docker run --rm -v build_server_firmware:/hsm "
-                    "-v build_server_secrets:/secrets "
-                    "-v build_server_build_out:/out -e HSM_PIN='1a2b3c' "
-                    "-e PERMISSIONS='1234=R--:4321=RWC' build-hsm) && "
-                    '[ -n "$(ls -A build_out 2>/dev/null)" ]',
-                    shell=True,
-                    check=True,
-                    timeout=60 * 10,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-            else:
-                output = subprocess.run(
-                    "cd ectf-design-repo && ./build.sh && "
-                    '[ -n "$(ls -A build_out 2>/dev/null)" ]',
-                    shell=True,
-                    check=True,
-                    timeout=60 * 10,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
+            # docker-in-docker jank
+            # build_server_build_out is volume mounted to ~/mounts/build_out which is symlinked to ~/src/ectf-design-repo/build_out
+            # build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
+            # build_server_firmware is volume mounted to ~/mounts/firmware which is copied from ~/src/ectf-design-repo/firmware
+            output = subprocess.run(
+                "cd ectf-design-repo &&"
+                "rm -rf build_out/* ~/mounts/firmware/* &&"
+                "(docker build -t build-hsm ./firmware &&"
+                "cp -r ./firmware/* ~/mounts/firmware &&"
+                "docker run --rm -v build_server_firmware:/hsm "
+                "-v build_server_secrets:/secrets "
+                "-v build_server_build_out:/out -e HSM_PIN='1a2b3c' "
+                "-e PERMISSIONS='1234=R--:4321=RWC' build-hsm) && "
+                '[ -n "$(ls -A build_out 2>/dev/null)" ]',
+                shell=True,
+                check=True,
+                timeout=60 * 10,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
             job.log(output.stdout)
             job.log(output.stderr)
         except subprocess.SubprocessError as e:
@@ -129,6 +118,8 @@ def build(job: ActionResult):
             return
 
         # output in build_out
+        # TODO do we really need all of the design repo or is just build_out and secrets fine?
+        # if so, we can drop the symlinks and just copy from the volume mount
         try:
             subprocess.run(
                 f"cp -Lr ectf-design-repo/ {build_folder}",
@@ -244,14 +235,14 @@ def init_build_queue():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-    if os.getenv("DOCKER"):  # setup for docker-in-docker jank
-        subprocess.run(
-            "rm -rf ./ectf-design-repo/secrets ./ectf-design-repo/build_out;"
-            "ln -s ~/mounts/secrets ./ectf-design-repo/secrets;"
-            "ln -s ~/mounts/build_out ./ectf-design-repo/build_out;",
-            shell=True,
-            check=True,
-        )
+    # setup for docker-in-docker jank
+    subprocess.run(
+        "rm -rf ./ectf-design-repo/secrets ./ectf-design-repo/build_out;"
+        "ln -s ~/mounts/secrets ./ectf-design-repo/secrets;"
+        "ln -s ~/mounts/build_out ./ectf-design-repo/build_out;",
+        shell=True,
+        check=True,
+    )
 
     # create venv
     try:

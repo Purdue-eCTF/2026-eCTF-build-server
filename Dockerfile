@@ -9,7 +9,6 @@ WORKDIR /root/src
 
 RUN git config --global advice.detachedHead false
 
-ENV DOCKER=1
 ENV PYTHONUNBUFFERED=1
 CMD [ "python3", "main.py" ]
 
