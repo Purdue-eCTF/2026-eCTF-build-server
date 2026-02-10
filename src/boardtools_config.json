@@ -1,0 +1,6 @@
+{
+    "auth_token": "",
+    "control_address": "tcp://provision_server:8120",
+    "client_proxy_address": "tcp://provision_server:8121",
+    "output_publish_address": "tcp://provision_server:8123"
+}

@@ -1,38 +1,43 @@
 import asyncio
 import os
 from pathlib import Path
+from config import AUTH_TOKEN
 
 from boardtools import ProvisionClient, ProvisionConfig
-from provision_common import BoardType
+from provision_common import BoardType, TestType
 
 from jobs import Job
 
 
 async def run_tests(job: Job):
-    job.log("[Build] Extracting board image from Docker volume...")
+    job.log("[TEST] Extracting board image from Docker volume...")
     with (Path.home() / "mounts/build_out/hsm.bin").open("rb") as f:
         board_image = f.read()
 
-    job.log(f"[Build] Board image extracted ({len(board_image)} bytes).")
+        job.log(f"[TEST] Board image extracted ({len(board_image)} bytes).")
 
-    job.log("[Client] Provisioning board...")
-    config = ProvisionConfig.load_from_file("boardtools/config.json")
-    client = ProvisionClient(config, "test-client-" + os.urandom(4).hex())
-    board = await client.provision_board(BoardType.DEV)
-    job.log("[Client] Provisioned board:", board.name)
-    job.log("[Client] Flashing board image...")
-    resp = await board.flash_image(board_image)
-    job.log("[Client] Flashed board image.")
-    resp = await board.power_cycle()
-    job.log("[Client] Power cycle response:", resp)
-    job.log("[Client] Running tests...")
-    # Disabled for now until we actually have tests to run
-    test_payload = b"test input data"
-    # result = await board.run_tests(TestType.DEV, test_payload)
-    result = "Tests not configured; Pretend this is test output."
+        job.log("[TEST] Provisioning board...")
+        config = ProvisionConfig.load_from_file("boardtools_config.json")
+        config.auth_token = AUTH_TOKEN
+        client = ProvisionClient(config, "test-client-" + job.commit.run_id)
+        board = await client.provision_board(BoardType.DEV)
+        job.log("[TEST] Provisioned board:", board.name)
+        job.log("[TEST] Flashing board image...")
+        resp = await board.flash_image(board_image)
+        job.log("[TEST] Flashed board image.")
+        job.log("[TEST] Running tests...")
+        # Disabled for now until we actually have tests to run
+        test_payload = b"test input data"
+        result = await board.run_tests(TestType.DEV, test_payload)
+        if result == "0":
+            job.on_success()
+        else:
+            job.log("[TEST] Tests failed")
+            job.conn.sendall(b"1\n")
+            job.conn.close()
 
-    job.log("[Client] Dev test output:", result)
-    job.on_success()
+    except Exception as e:
+        job.on_error(e, "[TEST] Error while testing")
 
 
 if __name__ == "__main__":
