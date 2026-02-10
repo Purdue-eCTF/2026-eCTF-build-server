@@ -1,32 +1,17 @@
-import subprocess
-from pathlib import Path
 import asyncio
 import os
+from pathlib import Path
 
 from boardtools import ProvisionClient, ProvisionConfig
-from provision_common import BoardType, TestType
+from provision_common import BoardType
+
 from jobs import Job
 
 
 async def run_tests(job: Job):
-    HOST_DIR = Path.cwd()
-    VOLUME_NAME = "build_server_build_out"
-    FILENAME = "hsm.bin"
-
-    cmd = [
-        "docker",
-        "run",
-        "--rm",
-        "-v",
-        f"{VOLUME_NAME}:/volume:ro",
-        "alpine",
-        "cat",
-        f"/volume/{FILENAME}",
-    ]
-
     job.log("[Build] Extracting board image from Docker volume...")
-    result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE)
-    board_image = result.stdout
+    with (Path.home() / "mounts/build_out/hsm.bin").open("rb") as f:
+        board_image = f.read()
 
     job.log(f"[Build] Board image extracted ({len(board_image)} bytes).")
 
