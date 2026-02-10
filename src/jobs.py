@@ -48,15 +48,18 @@ class Job:
         self.conn.sendall(b"0\n")
         self.conn.close()
 
-    def on_error(self, e: Exception, msg: str):
+    def on_failure(self, status: ActionStatus):
+        self.update_status(status)
+        self.conn.sendall(b"1\n")
+        self.conn.close()
+
+    def on_error(self, e: Exception, msg: str, status: ActionStatus):
         self.log(red(msg))
         if isinstance(e, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
             self.log(e.stdout or b"")
             self.log(e.stderr or b"")
         self.log(red(traceback.format_exc()))
-        self.conn.sendall(b"1\n")
-        self.conn.close()
-        self.update_status(ActionStatus.BUILD_FAILED)
+        self.on_failure(status)
 
     def update_status(self, status: ActionStatus):
         from publish import publish_status

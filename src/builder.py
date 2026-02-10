@@ -28,6 +28,7 @@ def build(job: ActionResult):
     active_build = job
     job.start_time = time.time()
     job.update_status(ActionStatus.BUILDING)
+    publish_status(job)
 
     build_folder = f"./builds/{job.commit.run_id}"
 
@@ -52,6 +53,7 @@ def build(job: ActionResult):
             job.on_error(
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! No commit found."
             )
+            publish_status(job)
 
             return
 
@@ -77,6 +79,7 @@ def build(job: ActionResult):
                     job.commit.hash
                 }! Failed to build secrets!\nError: {e.output}",
             )
+            publish_status(job)
 
             return
 
@@ -114,6 +117,7 @@ def build(job: ActionResult):
                     job.commit.hash
                 }! Build failed!\nError: {e.output}",
             )
+            publish_status(job)
 
             return
 
@@ -128,12 +132,14 @@ def build(job: ActionResult):
             job.on_error(
                 e, f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!"
             )
+            publish_status(job)
 
             return
 
         job.log(f"[BUILD] Built {job.commit.hash}!")
 
         active_build = None
+        job.update_status(ActionStatus.TEST_PENDING)
         publish_status()
         from run_tests import run_tests
 

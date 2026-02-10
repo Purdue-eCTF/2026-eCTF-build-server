@@ -6,7 +6,8 @@ from boardtools import ProvisionClient, ProvisionConfig
 from provision_common import BoardType, TestType
 
 from config import AUTH_TOKEN
-from jobs import Job
+from jobs import ActionStatus, Job
+from publish import publish_status
 
 
 async def run_tests(job: Job):
@@ -23,6 +24,10 @@ async def run_tests(job: Job):
         client = ProvisionClient(config, "test-client-" + job.commit.run_id)
         board = await client.provision_board(BoardType.DEV)
         job.log("[TEST] Provisioned board:", board.name)
+
+        job.update_status(ActionStatus.TESTING)
+        publish_status()
+
         job.log("[TEST] Flashing board image...")
         resp = await board.flash_image(board_image)
         job.log("[TEST] Flashed board image.")
@@ -34,11 +39,11 @@ async def run_tests(job: Job):
             job.on_success()
         else:
             job.log("[TEST] Tests failed")
-            job.conn.sendall(b"1\n")
-            job.conn.close()
-
+            job.on_failure(ActionStatus.TEST_FAILED)
     except Exception as e:
-        job.on_error(e, "[TEST] Error while testing")
+        job.on_error(e, "[TEST] Error while testing", ActionStatus.TEST_FAILED)
+    finally:
+        publish_status()
 
 
 if __name__ == "__main__":
