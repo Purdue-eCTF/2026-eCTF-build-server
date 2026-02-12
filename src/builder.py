@@ -29,7 +29,6 @@ def build(job: Job):
     active_build = job
     job.start_time = time.time()
     job.update_status(ActionStatus.BUILDING)
-    publish_status(job)
 
     build_folder = f"./builds/{job.commit.run_id}"
 
@@ -54,7 +53,6 @@ def build(job: Job):
                 f"[BUILD] Failed to build commit {job.commit.hash}! No commit found.",
                 ActionStatus.BUILD_FAILED,
             )
-            publish_status(job)
 
             return
 
@@ -80,7 +78,6 @@ def build(job: Job):
                 }! Failed to build secrets!\nError: {e.output}",
                 ActionStatus.BUILD_FAILED,
             )
-            publish_status(job)
 
             return
 
@@ -117,7 +114,6 @@ def build(job: Job):
                 }! Build failed!\nError: {e.output}",
                 ActionStatus.BUILD_FAILED,
             )
-            publish_status(job)
 
             return
 
@@ -136,7 +132,6 @@ def build(job: Job):
                 f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!",
                 ActionStatus.BUILD_FAILED,
             )
-            publish_status(job)
 
             return
 
@@ -144,7 +139,6 @@ def build(job: Job):
 
         active_build = None
         job.update_status(ActionStatus.TEST_PENDING)
-        publish_status()
         from run_tests import run_tests
 
         Thread(target=lambda job: asyncio.run(run_tests(job)), args=(job,)).start()

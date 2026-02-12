@@ -71,10 +71,14 @@ class Job:
         self.status = status
         publish_status(self)
 
-    def log(self, msg: str):
+    def log(self, msg: str | bytes):
         from publish import publish_logs
 
-        print(msg)
+        if isinstance(msg, bytes):
+            print(msg.decode())
+        else:
+            print(msg)
+
         publish_logs(self.commit.run_id, msg)
 
 

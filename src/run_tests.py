@@ -1,4 +1,3 @@
-import asyncio
 import shutil
 from pathlib import Path
 
@@ -27,19 +26,19 @@ async def run_tests(job: Job):
         job.log("[TEST] Provisioned board: " + board.name)
 
         job.update_status(ActionStatus.TESTING)
-        publish_status()
 
         job.log("[TEST] Flashing board image...")
-        resp = await board.flash_image(board_image)
+        await board.flash_image(board_image, "123456")  # TODO: proper pin
         job.log("[TEST] Flashed board image.")
+
         job.log("[TEST] Running tests...")
         # Disabled for now until we actually have tests to run
         test_payload = b"test input data"
-        result = await board.run_tests(TestType.DEV, test_payload)
+        result = (await board.run_tests(TestType.DEV, test_payload)).decode()
         if result == "0":
             job.on_success()
         else:
-            job.log("[TEST] Tests failed")
+            job.log("[TEST] Tests failed: " + result)
             job.on_failure(ActionStatus.TEST_FAILED)
     except Exception as e:
         job.on_error(e, "[TEST] Error while testing", ActionStatus.TEST_FAILED)
