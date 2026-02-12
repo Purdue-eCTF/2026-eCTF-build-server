@@ -60,8 +60,10 @@ class Job:
     def on_error(self, e: Exception, msg: str, status: ActionStatus):
         self.log(red(msg))
         if isinstance(e, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
-            self.log(e.stdout or b"")
-            self.log(e.stderr or b"")
+            if e.stdout:
+                self.log(e.stdout)
+            if e.stderr:
+                self.log(e.stderr)
         self.log(red(traceback.format_exc()))
         self.on_failure(status)
 

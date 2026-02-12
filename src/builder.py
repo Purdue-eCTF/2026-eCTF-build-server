@@ -1,7 +1,7 @@
 import asyncio
-import os
 import subprocess
 import sys
+import threading
 import time
 import traceback
 from queue import Queue
@@ -45,7 +45,7 @@ def build(job: Job):
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
             )
         except subprocess.CalledProcessError as e:
             job.on_error(
@@ -68,14 +68,12 @@ def build(job: Job):
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
             )
         except subprocess.CalledProcessError as e:
             job.on_error(
                 e,
-                f"[BUILD] Failed to build commit {
-                    job.commit.hash
-                }! Failed to build secrets!\nError: {e.output}",
+                f"[BUILD] Failed to build commit {job.commit.hash}! Failed to build secrets!",
                 ActionStatus.BUILD_FAILED,
             )
 
@@ -83,38 +81,37 @@ def build(job: Job):
 
         job.log("[BUILD] Building firmware...")
         # build firmware
-        try:
-            # docker-in-docker jank
-            # build_server_build_out is volume mounted to ~/mounts/build_out which is symlinked to ~/src/ectf-design-repo/build_out
-            # build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
-            # build_server_firmware is volume mounted to ~/mounts/firmware which is copied from ~/src/ectf-design-repo/firmware
-            output = subprocess.run(
-                "cd ectf-design-repo &&"
-                "rm -rf build_out/* ~/mounts/firmware/* &&"
-                "(docker build -t build-hsm ./firmware &&"
-                "cp -r ./firmware/* ~/mounts/firmware &&"
-                "docker run --rm -v build_server_firmware:/hsm "
-                "-v build_server_secrets:/secrets "
-                "-v build_server_build_out:/out -e HSM_PIN='1a2b3c' "
-                "-e PERMISSIONS='1234=R--:4321=RWC' build-hsm) && "
-                '[ -n "$(ls -A build_out 2>/dev/null)" ]',
-                shell=True,
-                check=True,
-                timeout=60 * 10,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            job.log(output.stdout)
-            job.log(output.stderr)
-        except subprocess.SubprocessError as e:
-            job.on_error(
-                e,
-                f"[BUILD] Failed to build commit {
-                    job.commit.hash
-                }! Build failed!\nError: {e.output}",
-                ActionStatus.BUILD_FAILED,
-            )
 
+        # docker-in-docker jank
+        # build_server_build_out is volume mounted to ~/mounts/build_out which is symlinked to ~/src/ectf-design-repo/build_out
+        # build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
+        # build_server_firmware is volume mounted to ~/mounts/firmware which is copied from ~/src/ectf-design-repo/firmware
+        with subprocess.Popen(
+            "cd ectf-design-repo &&"
+            "rm -rf build_out/* ~/mounts/firmware/* &&"
+            "(docker build -t build-hsm ./firmware &&"
+            "cp -r ./firmware/* ~/mounts/firmware &&"
+            "docker run --rm -v build_server_firmware:/hsm "
+            "-v build_server_secrets:/secrets "
+            "-v build_server_build_out:/out -e HSM_PIN='1a2b3c' "
+            "-e PERMISSIONS='1234=R--:4321=RWC' build-hsm) && "
+            '[ -n "$(ls -A build_out 2>/dev/null)" ]',
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        ) as proc:
+            timer = threading.Timer(60 * 10, proc.kill)
+            timer.start()
+            assert proc.stdout is not None
+            for line in proc.stdout:
+                job.log(line.rstrip())
+        proc.wait(timeout=5)
+        timer.cancel()
+        if proc.returncode != 0:
+            job.log(
+                f"[BUILD] Failed to build commit {job.commit.hash}! Build failed: {proc.returncode}!"
+            )
+            job.on_failure(ActionStatus.BUILD_FAILED)
             return
 
         # output in build_out
@@ -179,9 +176,9 @@ def init_build_queue():
         print("[BUILD] Setting up git...")
         try:
             subprocess.run(
-                f"echo {GITHUB_TOKEN} | gh auth login --with-token",
-                shell=True,
+                ["gh", "auth", "login", "--with-token"],
                 check=True,
+                input=GITHUB_TOKEN.encode(),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
             )
@@ -221,7 +218,7 @@ def init_build_queue():
             "cd ectf-design-repo && git status",
             shell=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             check=False,
         ).returncode
         == 0
@@ -233,7 +230,7 @@ def init_build_queue():
             ["git", "clone", DESIGN_REPO, "ectf-design-repo"],
             check=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
         )
     # setup for docker-in-docker jank
     subprocess.run(
