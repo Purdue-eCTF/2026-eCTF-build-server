@@ -1,4 +1,4 @@
-FROM docker:27-dind
+FROM docker:29-cli
 
 RUN apk update && apk upgrade && apk add github-cli python3 py3-pip openssh-client rsync curl
 
