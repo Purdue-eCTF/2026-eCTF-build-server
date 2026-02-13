@@ -1,4 +1,6 @@
 import asyncio
+import os
+import signal
 import subprocess
 import sys
 import threading
@@ -99,8 +101,12 @@ def build(job: Job):
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            process_group=0,
         ) as proc:
-            timer = threading.Timer(60 * 10, proc.kill)
+            # https://github.com/python/cpython/issues/119059
+            timer = threading.Timer(
+                60 * 10, lambda: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            )
             timer.start()
             assert proc.stdout is not None
             for line in proc.stdout:
