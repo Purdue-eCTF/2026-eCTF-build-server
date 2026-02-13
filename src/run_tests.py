@@ -6,14 +6,17 @@ from provision_common import BoardType, TestType
 
 from config import AUTH_TOKEN
 from jobs import ActionStatus, Job
-from publish import publish_status
+
+active_tests: list[Job] = []
 
 
 async def run_tests(job: Job):
-    build_folder = Path(f"./builds/{job.commit.run_id}")
     try:
+        active_tests.append(job)
+        job.update_status(ActionStatus.TEST_PENDING)
+
         job.log("[TEST] Extracting board image from Docker volume...")
-        with (build_folder / "build_out/hsm.bin").open("rb") as f:
+        with (job.build_folder / "build_out/hsm.bin").open("rb") as f:
             board_image = f.read()
 
         job.log(f"[TEST] Board image extracted ({len(board_image)} bytes).")
@@ -43,5 +46,5 @@ async def run_tests(job: Job):
     except Exception as e:
         job.on_error(e, "[TEST] Error while testing", ActionStatus.TEST_FAILED)
     finally:
-        publish_status()
-        shutil.rmtree(build_folder)
+        active_tests.remove(job)
+        shutil.rmtree(job.build_folder)

@@ -13,9 +13,11 @@ from colors import blue, red
 from config import DESIGN_REPO, GITHUB_TOKEN
 from jobs import ActionStatus, Job
 from publish import publish_status
+from run_tests import run_tests
 
 BUILD_QUEUE: Queue[Job] = Queue()
 active_build: Job | None = None
+active_tests: list[Job] = []
 
 
 def add_to_build_queue(job: Job):
@@ -31,9 +33,6 @@ def build(job: Job):
     active_build = job
     job.start_time = time.time()
     job.update_status(ActionStatus.BUILDING)
-
-    build_folder = f"./builds/{job.commit.run_id}"
-
     try:
         job.log("[BUILD] Pulling from repo...")
         # pull from repo
@@ -125,7 +124,7 @@ def build(job: Job):
         # if so, we can drop the symlinks and just copy from the volume mount
         try:
             subprocess.run(
-                f"cp -Lr ectf-design-repo/ {build_folder}",
+                f"cp -Lr ectf-design-repo/ {job.build_folder}",
                 shell=True,
                 check=True,
             )
@@ -141,11 +140,13 @@ def build(job: Job):
         job.log(f"[BUILD] Built {job.commit.hash}!")
 
         active_build = None
-        job.update_status(ActionStatus.TEST_PENDING)
-        from run_tests import run_tests
 
         Thread(target=lambda job: asyncio.run(run_tests(job)), args=(job,)).start()
-
+    except (BrokenPipeError, TimeoutError):
+        print(red("[BUILD] Client disconnected"))
+    except Exception as e:  # noqa: BLE001
+        job.on_error(e, "[BUILD] Error occurred during build", ActionStatus.BUILD_FAILED)
+        return
     finally:
         active_build = None
         BUILD_QUEUE.task_done()
@@ -154,14 +155,7 @@ def build(job: Job):
 def build_loop():
     while True:
         job = BUILD_QUEUE.get()
-        try:
-            build(job)
-        except (BrokenPipeError, TimeoutError):
-            print(red("[BUILD] Client disconnected"))
-        except Exception:  # noqa: BLE001
-            # error handling :tm:
-            publish_status(job)
-            traceback.print_exc()
+        build(job)
 
 
 def init_build_queue():

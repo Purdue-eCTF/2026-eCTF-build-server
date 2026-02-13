@@ -1,7 +1,8 @@
 import subprocess
 import traceback
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from socket import socket
 
 from colors import red
@@ -39,6 +40,10 @@ class Job:
     status: ActionStatus
     start_time: float
     commit: Commit
+    build_folder: Path = field(init=False)
+
+    def __post_init__(self):
+        self.build_folder = Path(f"./builds/{self.commit.run_id}")
 
     def to_json(self):
         return {
@@ -71,7 +76,7 @@ class Job:
         from publish import publish_status
 
         self.status = status
-        publish_status(self)
+        publish_status()
 
     def log(self, msg: str | bytes):
         from publish import publish_logs
