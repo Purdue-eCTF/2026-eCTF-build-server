@@ -13,7 +13,6 @@ from colors import blue, red
 from config import DESIGN_REPO, GITHUB_TOKEN
 from jobs import ActionStatus, Job
 from publish import publish_status
-from run_tests import run_tests
 
 BUILD_QUEUE: Queue[Job] = Queue()
 active_build: Job | None = None
@@ -140,6 +139,7 @@ def build(job: Job):
         job.log(f"[BUILD] Built {job.commit.hash}!")
 
         active_build = None
+        from run_tests import run_tests
 
         Thread(target=lambda job: asyncio.run(run_tests(job)), args=(job,)).start()
     except (BrokenPipeError, TimeoutError):
