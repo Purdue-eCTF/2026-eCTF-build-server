@@ -1,3 +1,5 @@
+import threading
+
 import zmq
 from msgspec import json
 from zmq.auth.thread import ThreadAuthenticator
@@ -14,17 +16,19 @@ auth.configure_plain(domain="*", passwords={"user": AUTH_TOKEN})
 status_pub = context.socket(zmq.PUB)
 status_pub.setsockopt(zmq.PLAIN_SERVER, 1)
 status_pub.bind(f"tcp://*:{STATUS_PORT}")
-active_status: Job | None = None
+status_lock = threading.Lock()
 
 log_pub = context.socket(zmq.PUB)
 log_pub.setsockopt(zmq.PLAIN_SERVER, 1)
 log_pub.bind(f"tcp://*:{LOG_PORT}")
+log_lock = threading.Lock()
 
 
 def publish_logs(run_id: str, msg: str | bytes):
     if isinstance(msg, str):
         msg = msg.encode()
-    log_pub.send_multipart([f"{run_id}-build".encode(), msg])
+    with log_lock:
+        log_pub.send_multipart([f"{run_id}-build".encode(), msg])
 
 
 def publish_status():
@@ -34,10 +38,11 @@ def publish_status():
     if DEBUG:  # disable webhook while debugging
         return
 
-    status = {
-        "active": [active_test.to_json() for active_test in active_tests]
-        + ([active_build.to_json()] if active_build is not None else []),
-        "queue": [t.to_json() for t in list(BUILD_QUEUE.queue)],
-    }
-    message = json.encode(status)
-    status_pub.send(message)
+    with status_lock:
+        status = {
+            "active": [active_test.to_json() for active_test in active_tests]
+            + ([active_build.to_json()] if active_build is not None else []),
+            "queue": [t.to_json() for t in list(BUILD_QUEUE.queue)],
+        }
+        message = json.encode(status)
+        status_pub.send(message)
