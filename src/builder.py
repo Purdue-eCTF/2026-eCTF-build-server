@@ -104,13 +104,13 @@ def build(job: Job):
         ) as proc:
             # https://github.com/python/cpython/issues/119059
             timer = threading.Timer(
-                60 * 10, lambda: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                60 * 10, lambda: os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
             )
             timer.start()
             assert proc.stdout is not None
             for line in proc.stdout:
                 job.log(line.rstrip())
-        proc.wait(timeout=5)
+        proc.wait(timeout=15)
         timer.cancel()
         if proc.returncode != 0:
             job.log(
