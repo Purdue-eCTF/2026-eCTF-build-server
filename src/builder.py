@@ -94,7 +94,7 @@ def build(job: Job):
             "docker run --rm -v build_server_firmware:/hsm "
             "-v build_server_secrets:/secrets "
             "-v build_server_build_out:/out -e HSM_PIN='1a2b3c' "
-            "-e PERMISSIONS='1234=R--:4321=RWC' build-hsm) && "
+            "-e PERMISSIONS='1234=R--:4321=RWC:1111=RW-' build-hsm) && "
             '[ -n "$(ls -A build_out 2>/dev/null)" ]',
             shell=True,
             stdout=subprocess.PIPE,

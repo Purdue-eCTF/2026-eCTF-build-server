@@ -37,7 +37,8 @@ async def run_tests(job: Job):
         job.log("[TEST] Running tests...")
         result = (
             await board.run_tests(
-                TestType.DEV, TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC")
+                TestType.DEV,
+                TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC:1111=RW-"),
             )
         ).decode()
         if result == "0":
