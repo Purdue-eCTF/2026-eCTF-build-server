@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 
 from boardtools import ProvisionClient, ProvisionConfig
-from provision_common import BoardType, TestType
+from provision_common import BoardType, TestData, TestType
 
 from config import AUTH_TOKEN
 from jobs import ActionStatus, Job
@@ -31,13 +31,15 @@ async def run_tests(job: Job):
         job.update_status(ActionStatus.TESTING)
 
         job.log("[TEST] Flashing board image...")
-        await board.flash_image(board_image, "123456")  # TODO: proper pin
+        await board.flash_image(board_image)  # TODO: proper pin
         job.log("[TEST] Flashed board image.")
 
         job.log("[TEST] Running tests...")
-        # Disabled for now until we actually have tests to run
-        test_payload = b"test input data"
-        result = (await board.run_tests(TestType.DEV, test_payload)).decode()
+        result = (
+            await board.run_tests(
+                TestType.DEV, TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC")
+            )
+        ).decode()
         if result == "0":
             job.on_success()
         else:
