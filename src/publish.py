@@ -5,7 +5,6 @@ from msgspec import json
 from zmq.auth.thread import ThreadAuthenticator
 
 from config import AUTH_TOKEN, DEBUG, LOG_PORT, STATUS_PORT
-from jobs import Job
 
 context = zmq.Context.instance()
 
@@ -28,7 +27,7 @@ def publish_logs(run_id: str, msg: str | bytes):
     if isinstance(msg, str):
         msg = msg.encode()
     with log_lock:
-        log_pub.send_multipart([f"{run_id}-build".encode(), msg])
+        log_pub.send_multipart([f"{run_id}-build".encode(), msg + b"\n"])
 
 
 def publish_status():
