@@ -25,22 +25,22 @@ async def run_tests(job: Job):
         config = ProvisionConfig.load_from_file("boardtools_config.json")
         config.auth_token = AUTH_TOKEN
         client = ProvisionClient(config, job.commit.run_id + "-test")
-        board = await client.provision_board(BoardType.DEV)
-        job.log("[TEST] Provisioned board: " + board.name)
+        with await client.provision_board(BoardType.DEV) as board:
+            job.log("[TEST] Provisioned board: " + board.name)
 
-        job.update_status(ActionStatus.TESTING)
+            job.update_status(ActionStatus.TESTING)
 
-        job.log("[TEST] Flashing board image...")
-        await board.flash_image(board_image)  # TODO: proper pin
-        job.log("[TEST] Flashed board image.")
+            job.log("[TEST] Flashing board image...")
+            await board.flash_image(board_image)  # TODO: proper pin
+            job.log("[TEST] Flashed board image.")
 
-        job.log("[TEST] Running tests...")
-        result = (
-            await board.run_tests(
-                TestType.DEV,
-                TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC:1111=RW-"),
-            )
-        ).decode()
+            job.log("[TEST] Running tests...")
+            result = (
+                await board.run_tests(
+                    TestType.DEV,
+                    TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC:1111=RW-"),
+                )
+            ).decode()
         if result == "0":
             job.on_success()
         else:
