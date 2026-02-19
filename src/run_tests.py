@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from config import AUTH_TOKEN
 from jobs import ActionStatus, Job
 
 active_tests: list[Job] = []
+
+TIMEOUT = 10 * 60
 
 
 async def run_tests(job: Job):
@@ -36,9 +39,12 @@ async def run_tests(job: Job):
 
             job.log("[TEST] Running tests...")
             result = (
-                await board.run_tests(
-                    TestType.DEV,
-                    TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC:1111=RW-"),
+                await asyncio.wait_for(
+                    board.run_tests(
+                        TestType.DEV,
+                        TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC:1111=RW-"),
+                    ),
+                    timeout=TIMEOUT,
                 )
             ).decode()
         if result == "0":
