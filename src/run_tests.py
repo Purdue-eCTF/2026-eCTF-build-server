@@ -28,7 +28,7 @@ async def run_tests(job: Job):
         config = ProvisionConfig.load_from_file("boardtools_config.json")
         config.auth_token = AUTH_TOKEN
         client = ProvisionClient(config, job.commit.run_id + "-test")
-        with await client.provision_board(BoardType.DEV) as board:
+        async with await client.provision_board(BoardType.DEV) as board:
             job.log("[TEST] Provisioned board: " + board.name)
 
             job.update_status(ActionStatus.TESTING)
