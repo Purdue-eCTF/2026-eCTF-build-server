@@ -63,8 +63,8 @@ def build(job: Job):
                 "cd ectf-design-repo &&"
                 "rm -rf secrets/* &&"
                 "mkdir -p secrets &&"
-                ". ./.venv/bin/activate &&"
-                "uv run secrets ./secrets/global.secrets 1 2 3 4",
+                "cd ectf26_design &&"
+                "uv run --locked secrets ../secrets/global.secrets 1 2 3 4",
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
@@ -87,19 +87,21 @@ def build(job: Job):
         # build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
         # build_server_firmware is volume mounted to ~/mounts/firmware which is copied from ~/src/ectf-design-repo/firmware
         with subprocess.Popen(
-            "cd ectf-design-repo &&"
             "rm -rf build_out/* ~/mounts/firmware/* &&"
             "(docker build -t build-hsm ./firmware &&"
             "cp -r ./firmware/* ~/mounts/firmware &&"
             "docker run --rm -v build_server_firmware:/hsm "
-            "-v build_server_secrets:/secrets "
-            "-v build_server_build_out:/out -e HSM_PIN='1a2b3c' "
-            "-e PERMISSIONS='1234=R--:4321=RWC:1111=RW-' build-hsm) && "
+            "-v build_server_secrets:/secrets:ro "
+            "-v build_server_build_out:/out "
+            "-e HSM_PIN='1a2b3c' "
+            "-e PERMISSIONS='1234=R--:4321=RWC:1111=RW-' "
+            "build-hsm) && "
             '[ -n "$(ls -A build_out 2>/dev/null)" ]',
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             process_group=0,
+            cwd="ectf-design-repo",
         ) as proc:
             # https://github.com/python/cpython/issues/119059
             timer = threading.Timer(
@@ -244,15 +246,12 @@ def init_build_queue():
     # create venv
     try:
         subprocess.run(
-            "cd ectf-design-repo &&"
-            "python -m venv .venv --prompt ectf-example &&"
-            ". ./.venv/bin/activate &&"
-            "python -m pip install -e ./ectf26_design/",
-            shell=True,
+            ["uv", "sync", "--locked"],
             timeout=60,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             check=True,
+            cwd="ectf-design-repo/ectf26_design",
         )
     except subprocess.SubprocessError:
         print(red("[BUILD] Failed to create venv!"))
