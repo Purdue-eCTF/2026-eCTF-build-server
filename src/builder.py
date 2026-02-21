@@ -64,7 +64,7 @@ def build(job: Job):
                 "rm -rf secrets/* &&"
                 "mkdir -p secrets &&"
                 "cd ectf26_design &&"
-                "uv run --locked secrets ../secrets/global.secrets 1 2 3 4",
+                "uv run --locked secrets ../secrets/global.secrets 1234 4321 1111",
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
