@@ -45,7 +45,7 @@ def serve():
                     continue
 
                 conn.sendall(b"[CONN] Building design\n")
-                hash, author, message, run_id = (
+                hash, author, message, run_id, branch = (
                     conn.recv(1024).decode("utf-8").split(chr(0x1B))
                 )
                 print(f"[CONN] New build request for commit {hash}...")
@@ -62,7 +62,7 @@ def serve():
                     conn,
                     ActionStatus.BUILD_PENDING,
                     time.time(),
-                    Commit(hash, author, message, run_id),
+                    Commit(hash, author, message, run_id, branch),
                 )
                 add_to_build_queue(req)
                 publish_status()

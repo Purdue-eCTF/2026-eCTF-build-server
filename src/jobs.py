@@ -14,6 +14,7 @@ class Commit:
     author: str
     message: str
     run_id: str
+    branch: str
 
     def to_json(self):
         return {
@@ -21,6 +22,7 @@ class Commit:
             "name": self.message,
             "author": self.author,
             "runId": self.run_id,
+            "branch": self.branch,
         }
 
 

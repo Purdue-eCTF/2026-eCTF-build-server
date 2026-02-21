@@ -37,15 +37,12 @@ def build(job: Job):
         # pull from repo
         try:
             output = subprocess.run(
-                "cd ectf-design-repo &&"
-                "git checkout main &&"
-                "git fetch &&"
-                "git reset --hard origin/main &&"
-                f"git checkout {job.commit.hash}",
+                f"git fetch && git checkout {job.commit.hash}",
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                cwd="ectf-design-repo",
             )
         except subprocess.CalledProcessError as e:
             job.on_error(
