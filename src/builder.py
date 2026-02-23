@@ -36,9 +36,15 @@ def build(job: Job):
         job.log("[BUILD] Pulling from repo...")
         # pull from repo
         try:
-            output = subprocess.run(
-                f"git fetch --all && git checkout {job.commit.hash}",
-                shell=True,
+            subprocess.run(
+                ["git", "fetch", job.commit.branch],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                cwd="ectf-design-repo",
+            )
+            subprocess.run(
+                ["git", "checkout", job.commit.hash],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
