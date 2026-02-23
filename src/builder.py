@@ -10,8 +10,9 @@ import traceback
 from queue import Queue
 from threading import Thread
 
-from colors import blue, red
 from config import DESIGN_REPO, GITHUB_TOKEN
+
+from colors import blue, red
 from jobs import ActionStatus, Job
 from publish import publish_status
 
@@ -38,8 +39,8 @@ def build(job: Job):
         # pull from repo
         try:
             subprocess.run(
-                f"git checkout {shlex.quote(job.commit.branch)} &&"
                 "git fetch &&"
+                f"git checkout {shlex.quote(job.commit.branch)} &&"
                 "git reset --hard @{upstream} &&"
                 f"git checkout {shlex.quote(job.commit.hash)}",
                 shell=True,
