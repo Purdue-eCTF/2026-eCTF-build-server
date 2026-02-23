@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -37,14 +38,11 @@ def build(job: Job):
         # pull from repo
         try:
             subprocess.run(
-                ["git", "fetch", job.commit.branch],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                cwd="ectf-design-repo",
-            )
-            subprocess.run(
-                ["git", "checkout", job.commit.hash],
+                f"git checkout {shlex.quote(job.commit.branch)} &&"
+                "git fetch &&"
+                "git reset --hard @{upstream} &&"
+                f"git checkout {shlex.quote(job.commit.hash)}",
+                shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -128,7 +126,7 @@ def build(job: Job):
         # if so, we can drop the symlinks and just copy from the volume mount
         try:
             subprocess.run(
-                f"cp -Lr ectf-design-repo/ {job.build_folder}",
+                f"cp -Lr ectf-design-repo/ {shlex.quote(str(job.build_folder))}",
                 shell=True,
                 check=True,
             )
