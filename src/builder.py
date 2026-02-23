@@ -37,7 +37,7 @@ def build(job: Job):
         # pull from repo
         try:
             output = subprocess.run(
-                f"git fetch && git checkout {job.commit.hash}",
+                f"git fetch --all && git checkout {job.commit.hash}",
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
