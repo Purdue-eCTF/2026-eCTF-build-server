@@ -10,7 +10,8 @@ from jobs import ActionStatus, Job
 
 active_tests: list[Job] = []
 
-TIMEOUT = 10 * 60
+FLASH_TIMEOUT = 2 * 60
+TEST_TIMEOUT = 10 * 60
 
 
 async def run_tests(job: Job):
@@ -34,7 +35,9 @@ async def run_tests(job: Job):
             job.update_status(ActionStatus.TESTING)
 
             job.log("[TEST] Flashing board image...")
-            await board.flash_image(board_image)  # TODO: proper pin
+            await asyncio.wait_for(
+                board.flash_image(board_image), timeout=FLASH_TIMEOUT
+            )  # TODO: proper pin
             job.log("[TEST] Flashed board image.")
 
             job.log("[TEST] Running tests...")
@@ -44,7 +47,7 @@ async def run_tests(job: Job):
                         TestType.DEV,
                         TestData(pin="1a2b3c", permissions="1234=R--:4321=RWC:1111=RW-"),
                     ),
-                    timeout=TIMEOUT,
+                    timeout=TEST_TIMEOUT,
                 )
             ).decode()
         if result == "0":
