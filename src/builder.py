@@ -1,6 +1,7 @@
 import asyncio
 import os
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -10,9 +11,8 @@ import traceback
 from queue import Queue
 from threading import Thread
 
-from config import DESIGN_REPO, GITHUB_TOKEN
-
 from colors import blue, red
+from config import DESIGN_REPO, GITHUB_TOKEN
 from jobs import ActionStatus, Job
 from publish import publish_status
 
@@ -63,10 +63,10 @@ def build(job: Job):
         try:
             output = subprocess.run(
                 "cd ectf-design-repo &&"
-                "rm -rf secrets/* &&"
-                "mkdir -p secrets &&"
+                "rm -rf ~/mounts/secrets/* &&"
+                "mkdir -p ~/mounts/secrets &&"
                 "cd ectf26_design &&"
-                "uv run --locked secrets ../secrets/global.secrets 1234 4321 1111",
+                "uv run --locked secrets ~/mounts/secrets/global.secrets 1234 4321 1111",
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
@@ -85,8 +85,8 @@ def build(job: Job):
         # build firmware
 
         # docker-in-docker jank
-        # build_server_build_out is volume mounted to ~/mounts/build_out which is symlinked to ~/src/ectf-design-repo/build_out
-        # build_server_secrets is volume mounted to ~/mounts/secrets which is symlinked to ~/src/ectf-design-repo/secrets
+        # build_server_build_out is volume mounted to ~/mounts/build_out
+        # build_server_secrets is volume mounted to ~/mounts/secrets
         # build_server_firmware is volume mounted to ~/mounts/firmware which is copied from ~/src/ectf-design-repo/firmware
         with subprocess.Popen(
             "rm -rf build_out/* ~/mounts/firmware/* &&"
@@ -98,7 +98,7 @@ def build(job: Job):
             "-e HSM_PIN='1a2b3c' "
             "-e PERMISSIONS='1234=R--:4321=RWC:1111=RW-' "
             "build-hsm) && "
-            '[ -n "$(ls -A build_out 2>/dev/null)" ]',
+            '[ -n "$(ls -A ~/mounts/build_out 2>/dev/null)" ]',
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -122,23 +122,8 @@ def build(job: Job):
             job.on_failure(ActionStatus.BUILD_FAILED)
             return
 
-        # output in build_out
-        # TODO do we really need all of the design repo or is just build_out and secrets fine?
-        # if so, we can drop the symlinks and just copy from the volume mount
-        try:
-            subprocess.run(
-                f"cp -Lr ectf-design-repo/ {shlex.quote(str(job.build_folder))}",
-                shell=True,
-                check=True,
-            )
-        except subprocess.CalledProcessError as e:
-            job.on_error(
-                e,
-                f"[BUILD] Failed to build commit {job.commit.hash}! Build failed!",
-                ActionStatus.BUILD_FAILED,
-            )
-
-            return
+        shutil.copytree("~/mounts/build_out", job.build_folder / "build_out")
+        shutil.copytree("~/mounts/secrets", job.build_folder / "secrets")
 
         job.log(f"[BUILD] Built {job.commit.hash}!")
 
@@ -236,14 +221,6 @@ def init_build_queue():
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-    # setup for docker-in-docker jank
-    subprocess.run(
-        "rm -rf ./ectf-design-repo/secrets ./ectf-design-repo/build_out;"
-        "ln -s ~/mounts/secrets ./ectf-design-repo/secrets;"
-        "ln -s ~/mounts/build_out ./ectf-design-repo/build_out;",
-        shell=True,
-        check=True,
-    )
 
     # create venv
     try:
